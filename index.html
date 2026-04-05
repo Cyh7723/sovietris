@@ -3,52 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>苏联方块：第一工程原型</title>
+    <title>苏联方块：历史修正原型</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-shell">
-        <div id="header-bar">
+        <header id="header-bar">
             <div>
-                <p class="eyebrow">Red Directorate Simulation</p>
-                <h1>苏联方块：第一工程原型</h1>
+                <p class="eyebrow">Temporal Directorate Console</p>
+                <h1>苏联方块：历史修正原型</h1>
             </div>
-            <p id="status-text">生产线运转中</p>
-        </div>
-
-        <div id="game-container">
-            <div id="playfield-frame">
-                <canvas id="tetris" width="240" height="400"></canvas>
-                <div id="controls">
-                    <p>移动: ← →</p>
-                    <p>下落: ↓ / 空格</p>
-                    <p>旋转: ↑ / Z / X</p>
-                </div>
+            <div class="header-meta">
+                <p id="status-text">时空稳定中</p>
+                <p id="quota-text">事件阶段</p>
             </div>
+        </header>
 
-            <div id="side-panel">
-                <h2>指令中心</h2>
-                <div class="stat-box">
-                    <p>工业产值 (Score): <span id="score">0</span></p>
-                    <p>产量倍率 (Mult): <span id="mult">1.0</span> x</p>
+        <main id="main-layout">
+            <section id="board-section" class="panel-card">
+                <div id="board-frame">
+                    <canvas id="tetris" width="320" height="520"></canvas>
+                    <div id="board-overlay" aria-hidden="true"></div>
                 </div>
-
-                <div class="panel-box">
-                    <h3>已获得的勋章 (Slots)</h3>
-                    <div id="medal-slots">
-                        <div class="empty-slot">等待指令...</div>
-                        <div class="empty-slot">等待指令...</div>
-                        <div class="empty-slot">等待指令...</div>
-                        <div class="empty-slot">等待指令...</div>
+                <div id="board-footer">
+                    <div class="footer-box">
+                        <p class="footer-label">操作</p>
+                        <p>移动：← →</p>
+                        <p>下落：↓ / 空格</p>
+                        <p>旋转：↑ / Z / X</p>
+                    </div>
+                    <div class="footer-box">
+                        <p class="footer-label">运行阶段</p>
+                        <p id="phase-text">历史事件执行中</p>
+                        <p id="timeline-text">Era 1 / 10</p>
                     </div>
                 </div>
+            </section>
 
-                <div class="panel-box">
-                    <h3>运行规则</h3>
-                    <p>消行会触发肉鸽钩子。</p>
-                    <p>当前版本仅保留勋章插槽与倍率接口。</p>
-                </div>
-            </div>
+            <aside id="side-panel">
+                <section class="panel-card">
+                    <p class="panel-label">Chronograph</p>
+                    <div id="clock-display">00:00</div>
+                </section>
+
+                <section class="panel-card score-grid">
+                    <div>
+                        <p class="panel-label">Total Score</p>
+                        <p class="score-value" id="score">0</p>
+                    </div>
+                    <div>
+                        <p class="panel-label">Multiplier</p>
+                        <p class="score-value" id="mult">1.0x</p>
+                    </div>
+                    <div>
+                        <p class="panel-label">Era Pieces</p>
+                        <p class="score-value" id="pieces-left">15</p>
+                    </div>
+                    <div>
+                        <p class="panel-label">Store Visits</p>
+                        <p class="score-value" id="store-count">0</p>
+                    </div>
+                </section>
+
+                <section class="panel-card">
+                    <p class="panel-label">Active Historical Event</p>
+                    <h2 id="era-name">载入中</h2>
+                    <p id="era-description" class="event-text">等待时空档案同步。</p>
+                    <p id="era-guide" class="event-guide">请准备接收指令。</p>
+                </section>
+
+                <section class="panel-card">
+                    <div class="signal-header">
+                        <p class="panel-label">Radio Jamming</p>
+                        <p id="signal-mode">NORMAL</p>
+                    </div>
+                    <div class="signal-lights">
+                        <span class="signal-light" id="signal-left"></span>
+                        <span class="signal-light" id="signal-right"></span>
+                    </div>
+                </section>
+
+                <section class="panel-card">
+                    <p class="panel-label">Department Points</p>
+                    <div class="gauges">
+                        <div class="gauge" data-kind="industrial">
+                            <div class="gauge-face">
+                                <span class="gauge-needle" id="needle-industrial"></span>
+                                <span class="gauge-center"></span>
+                            </div>
+                            <p class="gauge-title">工业</p>
+                            <p class="gauge-value" id="dept-industrial">0</p>
+                        </div>
+                        <div class="gauge" data-kind="agricultural">
+                            <div class="gauge-face">
+                                <span class="gauge-needle" id="needle-agricultural"></span>
+                                <span class="gauge-center"></span>
+                            </div>
+                            <p class="gauge-title">农业</p>
+                            <p class="gauge-value" id="dept-agricultural">0</p>
+                        </div>
+                        <div class="gauge" data-kind="scientific">
+                            <div class="gauge-face">
+                                <span class="gauge-needle" id="needle-scientific"></span>
+                                <span class="gauge-center"></span>
+                            </div>
+                            <p class="gauge-title">科技</p>
+                            <p class="gauge-value" id="dept-scientific">0</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel-card">
+                    <p class="panel-label">Route Archive</p>
+                    <p id="route-bonus">尚未确立路线。</p>
+                    <div id="medal-slots">
+                        <div class="empty-slot">国家商店待扩建</div>
+                        <div class="empty-slot">勋章库存待配置</div>
+                        <div class="empty-slot">档案位空缺</div>
+                        <div class="empty-slot">档案位空缺</div>
+                    </div>
+                </section>
+            </aside>
+        </main>
+    </div>
+
+    <div id="phase-overlay" class="hidden" aria-live="polite">
+        <div class="overlay-panel">
+            <p class="panel-label" id="overlay-kicker">State Store</p>
+            <h2 id="overlay-title">国家商店</h2>
+            <p id="overlay-body">当前版本仅提供阶段切换与货币结算展示。</p>
+            <button id="overlay-button" type="button">继续下一事件</button>
         </div>
     </div>
 
