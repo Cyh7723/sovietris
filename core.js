@@ -1,8 +1,9 @@
-const COLS = 16;
-const ROWS = 26;
+const COLS = 12;
+const ROWS = 22;
 const BLOCK_SIZE = 20;
 const HALF_COLS = COLS / 2;
 const ERA_PIECES = 15;
+const AUGUST_COUP_REWIND_MS = 60000;
 
 const canvas = document.getElementById("tetris");
 const context = canvas.getContext("2d");
@@ -14,6 +15,7 @@ const clockEl = document.getElementById("clock-display");
 const eraNameEl = document.getElementById("era-name");
 const eraDescriptionEl = document.getElementById("era-description");
 const eraGuideEl = document.getElementById("era-guide");
+const eraArtTagEl = document.getElementById("era-art-tag");
 const routeBonusEl = document.getElementById("route-bonus");
 const statusTextEl = document.getElementById("status-text");
 const quotaTextEl = document.getElementById("quota-text");
@@ -38,6 +40,7 @@ const overlayKickerEl = document.getElementById("overlay-kicker");
 const overlayTitleEl = document.getElementById("overlay-title");
 const overlayBodyEl = document.getElementById("overlay-body");
 const overlayButtonEl = document.getElementById("overlay-button");
+const overlayArtTagEl = document.getElementById("overlay-art-tag");
 
 context.scale(BLOCK_SIZE, BLOCK_SIZE);
 
@@ -121,6 +124,7 @@ const HISTORICAL_TIMELINE = [
     {
         id: "ideologicalSplit",
         name: "路线斗争",
+        archiveTag: "SPLIT",
         description: "改革路径出现根本分歧，国家机器被切成互不兼容的两条生产线。",
         guide: "棋盘垂直分裂为左右两区，活动方块将在两侧交替落下，且只在所属半区内结算与消行。",
         overlayClass: "split",
@@ -129,6 +133,7 @@ const HISTORICAL_TIMELINE = [
     {
         id: "collectivization",
         name: "集体主义大生产",
+        archiveTag: "PLAN",
         description: "零星成绩不再被承认，只有成规模的集体成果才会被计入国家账本。",
         guide: "单行或双行消除仍会生效，但不会带来任何得分与部门点数，三消起算。",
         createRuntime: () => ({})
@@ -136,21 +141,24 @@ const HISTORICAL_TIMELINE = [
     {
         id: "greatDebate",
         name: "真理大讨论",
-        description: "左与右的路线之争进入公开阶段，每次消行都被记录为一次历史表态。",
-        guide: "棋盘中央被划出争论边界。15 块结束后，按你在哪一侧完成了更多清行，授予永久路线加成。",
+        archiveTag: "DEBATE",
+        description: "左与右的路线之争进入公开阶段，每次局部消行都被记录为一次历史表态。",
+        guide: "棋盘中央被划出争论边界，本事件按左右半区独立消行。15 块结束后，比较两侧清行总数并授予永久路线加成。",
         overlayClass: "debate",
         createRuntime: () => ({ leftClears: 0, rightClears: 0 })
     },
     {
         id: "westernJamming",
         name: "信号干扰：西方之音",
+        archiveTag: "JAM",
         description: "越过铁幕的无线电噪声扭曲了输入系统，统一指令开始周期性反转。",
-        guide: "左右移动每 3 秒反相一次，请观察侧栏电台指示灯判断当前方向映射。",
+        guide: "左右移动每 3 秒反相一次，请观察右侧电台指示灯判断当前方向映射。",
         createRuntime: () => ({ elapsedMs: 0, inverted: false })
     },
     {
         id: "blackMarket",
         name: "黑市倒卖",
+        archiveTag: "SHADOW",
         description: "地下市场吞噬了官方结算渠道，普通成绩在黑账面前失去价值。",
         guide: "所有得分暂时冻结。连续完成两次四消后，当前事件内的得分结算才会恢复。",
         createRuntime: () => ({ tetrisChain: 0, unlocked: false })
@@ -158,6 +166,7 @@ const HISTORICAL_TIMELINE = [
     {
         id: "bureaucraticRedTape",
         name: "官僚主义文书",
+        archiveTag: "BUREAU",
         description: "简单动作必须层层审批，旋转命令在纸堆中被拖成迟滞的机械反馈。",
         guide: "旋转操作受到冷却限制，过于频繁的旋转会被直接驳回。",
         createRuntime: () => ({ rotateCooldownMs: 550 })
@@ -165,6 +174,7 @@ const HISTORICAL_TIMELINE = [
     {
         id: "greatPurge",
         name: "大清洗",
+        archiveTag: "PURGE",
         description: "怀疑与检举进入生产线，旧有积木会在新方块降临前随机蒸发。",
         guide: "接下来的 15 块中，每次生成新方块前，棋盘上已有方块会随机消失 1 格。",
         createRuntime: () => ({})
@@ -172,6 +182,7 @@ const HISTORICAL_TIMELINE = [
     {
         id: "greatPatrioticWar",
         name: "卫国战争：钢铁洪流",
+        archiveTag: "WAR",
         description: "工业体系转入战时节奏，钢铁装甲吞没了所有细碎区分。",
         guide: "方块下落速度提高到三倍，所有新方块都以统一装甲块形态生成，并按工业资源结算。",
         createRuntime: () => ({})
@@ -179,6 +190,7 @@ const HISTORICAL_TIMELINE = [
     {
         id: "redSquareAftermath",
         name: "红场余波",
+        archiveTag: "AFTERMATH",
         description: "猜忌切断了友谊，每第三批补给都混入一道无法结算的黑色阴影。",
         guide: "每第三个生成的方块会变成黑块。含有黑块的行仍会消除，但该行不提供任何得分。",
         createRuntime: () => ({ spawnCount: 0 })
@@ -186,6 +198,7 @@ const HISTORICAL_TIMELINE = [
     {
         id: "fiveYearPlan",
         name: "五年计划",
+        archiveTag: "FIVE",
         description: "国家把资源向工业部门倾斜，红色模块的产出被大幅提高。",
         guide: "工业格子的生成概率提升至 60%，工业部门点数额外乘以 3，农业与科技只按 0.5 结算。",
         createRuntime: () => ({})
@@ -193,14 +206,16 @@ const HISTORICAL_TIMELINE = [
     {
         id: "augustCoup",
         name: "八一九事件",
+        archiveTag: "819",
         description: "政变阴影下，历史开始回卷。失败并不一定意味着终局，但机会只给一次。",
-        guide: "此事件激活时，每秒保存快照。若触发 Game Over，将自动回溯到 10 秒前的棋盘状态。",
+        guide: "此事件激活时，每秒保存快照。若触发 Game Over，将自动回溯到 60 秒前的棋盘状态。",
         createRuntime: () => ({ used: false })
     }
 ];
 
 const state = {
-    phase: "playing",
+    phase: "boot",
+    previousPhase: "playing",
     arena: createMatrix(COLS, ROWS),
     player: null,
     totalScore: 0,
@@ -221,12 +236,13 @@ const state = {
     elapsedMs: 0,
     historySnapshots: [],
     lastSnapshotSecond: -1,
-    timelineIndex: 0,
+    eventCount: 0,
     piecesRemainingInEra: ERA_PIECES,
-    eraPieceCounter: 0,
     storeVisits: 0,
     activeEvent: null,
+    pendingEvent: null,
     bag: [],
+    eventBag: [],
     input: {
         lastRotateMs: -Infinity
     },
@@ -255,6 +271,10 @@ function refillBag() {
     state.bag = shuffle(Object.keys(PIECES));
 }
 
+function refillEventBag() {
+    state.eventBag = shuffle([...HISTORICAL_TIMELINE]);
+}
+
 function nextPieceType() {
     if (state.bag.length === 0) {
         refillBag();
@@ -262,12 +282,19 @@ function nextPieceType() {
     return state.bag.pop();
 }
 
+function nextEventDefinition() {
+    if (state.eventBag.length === 0) {
+        refillEventBag();
+    }
+    return state.eventBag.pop();
+}
+
 function eventIs(id) {
     return state.activeEvent && state.activeEvent.id === id;
 }
 
-function getActiveEvent() {
-    return state.activeEvent;
+function usesSplitClearRules() {
+    return eventIs("ideologicalSplit") || eventIs("greatDebate");
 }
 
 function setStatus(text) {
@@ -285,11 +312,12 @@ function formatTime(ms) {
     return `${minutes}:${seconds}`;
 }
 
-function showOverlay({ kicker, title, body, buttonLabel, action }) {
+function showOverlay({ kicker, title, body, buttonLabel, artTag, action }) {
     overlayKickerEl.innerText = kicker;
     overlayTitleEl.innerText = title;
     overlayBodyEl.innerText = body;
     overlayButtonEl.innerText = buttonLabel;
+    overlayArtTagEl.innerText = artTag || "ERA";
     overlayAction = action;
     overlayEl.classList.remove("hidden");
 }
@@ -312,8 +340,20 @@ function updateHud() {
     storeCountEl.innerText = String(state.storeVisits);
     clockEl.innerText = formatTime(state.elapsedMs);
     routeBonusEl.innerText = state.routeArchive;
-    quotaTextEl.innerText = state.phase === "playing" ? "事件阶段" : state.phase === "store" ? "国家商店" : "历史冻结";
-    timelineTextEl.innerText = `Era ${state.timelineIndex + 1} / ${HISTORICAL_TIMELINE.length}`;
+
+    if (state.phase === "playing") {
+        quotaTextEl.innerText = "事件阶段";
+    } else if (state.phase === "store") {
+        quotaTextEl.innerText = "国家商店";
+    } else if (state.phase === "paused") {
+        quotaTextEl.innerText = "已暂停";
+    } else if (state.phase === "intro") {
+        quotaTextEl.innerText = "事件开场";
+    } else {
+        quotaTextEl.innerText = "历史冻结";
+    }
+
+    timelineTextEl.innerText = `Random Era ${state.eventCount}`;
 
     for (const key of Object.keys(state.departments)) {
         deptEls[key].innerText = String(Math.round(state.departments[key]));
@@ -331,118 +371,16 @@ function updateSignalIndicator() {
 }
 
 function updateEraPanel() {
-    const event = getActiveEvent();
-    if (!event) {
+    if (!state.activeEvent) {
         return;
     }
 
-    eraNameEl.innerText = event.name;
-    eraDescriptionEl.innerText = event.description;
-    eraGuideEl.innerText = event.guide;
-    boardOverlayEl.className = event.overlayClass || "";
+    eraNameEl.innerText = state.activeEvent.name;
+    eraDescriptionEl.innerText = state.activeEvent.description;
+    eraGuideEl.innerText = state.activeEvent.guide;
+    eraArtTagEl.innerText = state.activeEvent.archiveTag || "ARCHIVE";
+    boardOverlayEl.className = state.activeEvent.overlayClass || "";
     updateSignalIndicator();
-    updateHud();
-}
-
-function startEra(index) {
-    const definition = HISTORICAL_TIMELINE[index % HISTORICAL_TIMELINE.length];
-    state.timelineIndex = index % HISTORICAL_TIMELINE.length;
-    state.activeEvent = {
-        id: definition.id,
-        name: definition.name,
-        description: definition.description,
-        guide: definition.guide,
-        overlayClass: definition.overlayClass || "",
-        runtime: definition.createRuntime()
-    };
-    state.piecesRemainingInEra = ERA_PIECES;
-    state.eraPieceCounter = 0;
-    state.input.lastRotateMs = -Infinity;
-    setPhaseText("历史事件执行中");
-    setStatus(`${definition.name} 已生效`);
-    updateEraPanel();
-}
-
-function resolveEraEnd() {
-    if (eventIs("greatDebate")) {
-        const runtime = state.activeEvent.runtime;
-        if (runtime.leftClears > runtime.rightClears) {
-            state.departmentWeights.industrial += 0.35;
-            state.multiplier += 0.1;
-            state.routeArchive = "真理大讨论结果：左翼路线暂时占优，工业部门永久增益 +0.35，倍率 +0.1。";
-            setStatus("历史选择：左翼路线占优");
-        } else if (runtime.rightClears > runtime.leftClears) {
-            state.departmentWeights.scientific += 0.35;
-            state.multiplier += 0.1;
-            state.routeArchive = "真理大讨论结果：右翼路线暂时占优，科技部门永久增益 +0.35，倍率 +0.1。";
-            setStatus("历史选择：右翼路线占优");
-        } else {
-            state.departmentWeights.agricultural += 0.25;
-            state.multiplier += 0.2;
-            state.routeArchive = "真理大讨论暂未分出胜负，农业协调度 +0.25，倍率 +0.2。";
-            setStatus("历史选择：暂时妥协");
-        }
-    }
-}
-
-function enterStorePhase() {
-    state.phase = "store";
-    state.storeVisits += 1;
-    state.player = null;
-    setPhaseText("国家商店待机中");
-    updateHud();
-    showOverlay({
-        kicker: "State Store",
-        title: "国家商店",
-        body: `本阶段已结束。当前可支配部门点数为 工业 ${Math.round(state.departments.industrial)} / 农业 ${Math.round(state.departments.agricultural)} / 科技 ${Math.round(state.departments.scientific)}。商店内容后续接入，现可直接进入下一历史事件。`,
-        buttonLabel: "继续下一事件",
-        action: continueFromStore
-    });
-}
-
-function continueFromStore() {
-    hideOverlay();
-    startEra(state.timelineIndex + 1);
-    state.phase = "playing";
-    state.dropCounter = 0;
-    state.lastTime = 0;
-    spawnPlayer();
-    updateHud();
-}
-
-function restartGame() {
-    state.phase = "playing";
-    state.arena = createMatrix(COLS, ROWS);
-    state.player = null;
-    state.totalScore = 0;
-    state.multiplier = 1.0;
-    state.departments = {
-        industrial: 0,
-        agricultural: 0,
-        scientific: 0
-    };
-    state.departmentWeights = {
-        industrial: 1,
-        agricultural: 1,
-        scientific: 1
-    };
-    state.routeArchive = "尚未确立路线。";
-    state.dropCounter = 0;
-    state.lastTime = 0;
-    state.elapsedMs = 0;
-    state.historySnapshots = [];
-    state.lastSnapshotSecond = -1;
-    state.timelineIndex = 0;
-    state.storeVisits = 0;
-    state.gaugeMaxima = {
-        industrial: 25,
-        agricultural: 25,
-        scientific: 25
-    };
-    refillBag();
-    hideOverlay();
-    startEra(0);
-    spawnPlayer();
     updateHud();
 }
 
@@ -476,16 +414,13 @@ function createPieceMatrix(type) {
     const matrix = [];
     const runtime = state.activeEvent.runtime;
     let renderVariant = null;
-    let forcedDepartment = null;
 
     if (eventIs("greatPatrioticWar")) {
         renderVariant = "armor";
-        forcedDepartment = "industrial";
     } else if (eventIs("redSquareAftermath")) {
         runtime.spawnCount += 1;
         if (runtime.spawnCount % 3 === 0) {
             renderVariant = "black";
-            forcedDepartment = null;
         }
     }
 
@@ -499,16 +434,12 @@ function createPieceMatrix(type) {
 
             if (renderVariant === "armor") {
                 row.push(createCell("industrial", "armor"));
-                continue;
+            } else if (renderVariant === "black") {
+                row.push(createCell(null, "black"));
+            } else {
+                const department = chooseDepartment();
+                row.push(createCell(department, department));
             }
-
-            if (renderVariant === "black") {
-                row.push(createCell(forcedDepartment, "black"));
-                continue;
-            }
-
-            const department = chooseDepartment();
-            row.push(createCell(department, department));
         }
         matrix.push(row);
     }
@@ -534,12 +465,38 @@ function removeRandomArenaCell() {
             }
         }
     }
+
     if (occupied.length === 0) {
         return;
     }
+
     const pick = occupied[Math.floor(Math.random() * occupied.length)];
     state.arena[pick.y][pick.x] = null;
     setStatus("大清洗：旧档案被随机蒸发");
+}
+
+function collide(arena, player) {
+    for (let y = 0; y < player.matrix.length; y += 1) {
+        for (let x = 0; x < player.matrix[y].length; x += 1) {
+            const cell = player.matrix[y][x];
+            if (!cell) {
+                continue;
+            }
+
+            const boardX = x + player.pos.x;
+            const boardY = y + player.pos.y;
+            const bounds = getPieceSideBounds(player.side);
+
+            if (boardX < bounds.min || boardX > bounds.max || boardY >= ROWS) {
+                return true;
+            }
+
+            if (boardY < 0 || arena[boardY][boardX]) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 function spawnPlayer() {
@@ -560,8 +517,6 @@ function spawnPlayer() {
     }
 
     state.player = { matrix, pos, type, side };
-    state.eraPieceCounter += 1;
-    updateHud();
 
     if (collide(state.arena, state.player)) {
         triggerGameOver();
@@ -569,34 +524,6 @@ function spawnPlayer() {
     }
 
     setStatus(`当前构件: ${type}`);
-}
-
-function collide(arena, player) {
-    for (let y = 0; y < player.matrix.length; y += 1) {
-        for (let x = 0; x < player.matrix[y].length; x += 1) {
-            const cell = player.matrix[y][x];
-            if (!cell) {
-                continue;
-            }
-
-            const boardX = x + player.pos.x;
-            const boardY = y + player.pos.y;
-            const bounds = getPieceSideBounds(player.side);
-
-            if (boardX < bounds.min || boardX > bounds.max || boardY >= ROWS) {
-                return true;
-            }
-
-            if (boardY < 0) {
-                return true;
-            }
-
-            if (arena[boardY][boardX]) {
-                return true;
-            }
-        }
-    }
-    return false;
 }
 
 function merge(arena, player) {
@@ -621,11 +548,6 @@ function rotateMatrix(matrix, direction) {
     } else {
         matrix.reverse();
     }
-}
-
-function getLockSide(player) {
-    const center = player.pos.x + player.matrix[0].length / 2;
-    return center < HALF_COLS ? "left" : "right";
 }
 
 function clearHalf(startX, endX, side) {
@@ -693,19 +615,13 @@ function clearFullRows() {
     return results;
 }
 
-function clearRows(lockSide) {
-    const cleared = eventIs("ideologicalSplit")
+function clearRows() {
+    return usesSplitClearRules()
         ? [
             ...clearHalf(0, HALF_COLS - 1, "left"),
             ...clearHalf(HALF_COLS, COLS - 1, "right")
         ]
         : clearFullRows();
-
-    if (eventIs("greatDebate") && cleared.length > 0) {
-        state.activeEvent.runtime[lockSide === "left" ? "leftClears" : "rightClears"] += cleared.length;
-    }
-
-    return cleared;
 }
 
 function getBaseLineScore(lineCount) {
@@ -727,14 +643,23 @@ function getTemporaryDepartmentWeights() {
     };
 }
 
-function processScore(clearedRows, lockSide) {
+function processScore(clearedRows) {
     if (clearedRows.length === 0) {
         return;
     }
 
     const runtime = state.activeEvent.runtime;
-    let scoringAllowed = true;
+    if (eventIs("greatDebate")) {
+        clearedRows.forEach((row) => {
+            if (row.side === "left") {
+                runtime.leftClears += 1;
+            } else if (row.side === "right") {
+                runtime.rightClears += 1;
+            }
+        });
+    }
 
+    let scoringAllowed = true;
     if (eventIs("collectivization") && clearedRows.length < 3) {
         scoringAllowed = false;
         setStatus("集体主义大生产：三消以下不计产值");
@@ -790,10 +715,52 @@ function processScore(clearedRows, lockSide) {
     if (scorableRows.length < clearedRows.length) {
         setStatus("红场余波：含黑块的行已被清除，但不计入结算");
     } else if (eventIs("greatDebate")) {
-        setStatus(`真理大讨论：${lockSide === "left" ? "左翼" : "右翼"}路线获得发言权`);
+        setStatus(`真理大讨论：左 ${runtime.leftClears} / 右 ${runtime.rightClears}`);
     } else {
         setStatus(`完成 ${clearedRows.length} 行清除`);
     }
+}
+
+function resolveEraEnd() {
+    if (!eventIs("greatDebate")) {
+        return;
+    }
+
+    const runtime = state.activeEvent.runtime;
+    if (runtime.leftClears > runtime.rightClears) {
+        state.departmentWeights.industrial += 0.35;
+        state.multiplier += 0.1;
+        state.routeArchive = "真理大讨论结果：左翼路线暂时占优，工业部门永久增益 +0.35，倍率 +0.1。";
+        setStatus("历史选择：左翼路线占优");
+    } else if (runtime.rightClears > runtime.leftClears) {
+        state.departmentWeights.scientific += 0.35;
+        state.multiplier += 0.1;
+        state.routeArchive = "真理大讨论结果：右翼路线暂时占优，科技部门永久增益 +0.35，倍率 +0.1。";
+        setStatus("历史选择：右翼路线占优");
+    } else {
+        state.departmentWeights.agricultural += 0.25;
+        state.multiplier += 0.2;
+        state.routeArchive = "真理大讨论暂未分出胜负，农业协调度 +0.25，倍率 +0.2。";
+        setStatus("历史选择：暂时妥协");
+    }
+}
+
+function lockPlayer() {
+    merge(state.arena, state.player);
+    const clearedRows = clearRows();
+    processScore(clearedRows);
+
+    state.piecesRemainingInEra -= 1;
+    state.player = null;
+    updateHud();
+
+    if (state.piecesRemainingInEra <= 0) {
+        resolveEraEnd();
+        enterStorePhase();
+        return;
+    }
+
+    spawnPlayer();
 }
 
 function playerDrop() {
@@ -869,31 +836,25 @@ function playerRotate(direction) {
     state.input.lastRotateMs = state.elapsedMs;
 }
 
-function lockPlayer() {
-    const lockSide = getLockSide(state.player);
-    merge(state.arena, state.player);
-    const clearedRows = clearRows(lockSide);
-    processScore(clearedRows, lockSide);
-
-    state.piecesRemainingInEra -= 1;
-    state.player = null;
-    updateHud();
-
-    if (state.piecesRemainingInEra <= 0) {
-        resolveEraEnd();
-        enterStorePhase();
-        return;
-    }
-
-    spawnPlayer();
-}
-
 function getDropInterval() {
     let interval = 800;
     if (eventIs("greatPatrioticWar")) {
         interval /= 3;
     }
     return interval;
+}
+
+function updateEventRuntime(deltaTime) {
+    if (eventIs("westernJamming")) {
+        const runtime = state.activeEvent.runtime;
+        runtime.elapsedMs += deltaTime;
+        const shouldInvert = Math.floor(runtime.elapsedMs / 3000) % 2 === 1;
+        if (shouldInvert !== runtime.inverted) {
+            runtime.inverted = shouldInvert;
+            setStatus(shouldInvert ? "西方之音：左右操作已反转" : "西方之音：指令恢复正常");
+            updateSignalIndicator();
+        }
+    }
 }
 
 function drawGrid() {
@@ -916,7 +877,7 @@ function drawGrid() {
 }
 
 function drawCenterMarker() {
-    if (!eventIs("ideologicalSplit") && !eventIs("greatDebate")) {
+    if (!usesSplitClearRules()) {
         return;
     }
 
@@ -1038,20 +999,19 @@ function saveSnapshotIfNeeded() {
             departments: state.departments,
             departmentWeights: state.departmentWeights,
             routeArchive: state.routeArchive,
-            dropCounter: state.dropCounter,
             elapsedMs: state.elapsedMs,
-            timelineIndex: state.timelineIndex,
+            eventCount: state.eventCount,
             piecesRemainingInEra: state.piecesRemainingInEra,
-            eraPieceCounter: state.eraPieceCounter,
             storeVisits: state.storeVisits,
             activeEventId: state.activeEvent.id,
             activeEventRuntime: state.activeEvent.runtime,
             bag: state.bag,
+            eventBag: state.eventBag,
             gaugeMaxima: state.gaugeMaxima
         })
     });
 
-    if (state.historySnapshots.length > 20) {
+    if (state.historySnapshots.length > 90) {
         state.historySnapshots.shift();
     }
 }
@@ -1061,7 +1021,7 @@ function restoreSnapshot() {
         return false;
     }
 
-    const targetTime = state.elapsedMs - 10000;
+    const targetTime = state.elapsedMs - AUGUST_COUP_REWIND_MS;
     let snapshot = null;
 
     for (let i = state.historySnapshots.length - 1; i >= 0; i -= 1) {
@@ -1076,6 +1036,7 @@ function restoreSnapshot() {
     }
 
     const restored = JSON.parse(snapshot.payload);
+    const definition = HISTORICAL_TIMELINE.find((item) => item.id === restored.activeEventId);
     state.arena = restored.arena;
     state.player = restored.player;
     state.totalScore = restored.totalScore;
@@ -1083,18 +1044,17 @@ function restoreSnapshot() {
     state.departments = restored.departments;
     state.departmentWeights = restored.departmentWeights;
     state.routeArchive = restored.routeArchive;
-    state.dropCounter = 0;
     state.elapsedMs = restored.elapsedMs;
-    state.timelineIndex = restored.timelineIndex;
+    state.eventCount = restored.eventCount;
     state.piecesRemainingInEra = restored.piecesRemainingInEra;
-    state.eraPieceCounter = restored.eraPieceCounter;
     state.storeVisits = restored.storeVisits;
     state.bag = restored.bag;
+    state.eventBag = restored.eventBag;
     state.gaugeMaxima = restored.gaugeMaxima;
-    const definition = HISTORICAL_TIMELINE.find((item) => item.id === restored.activeEventId);
     state.activeEvent = {
         id: definition.id,
         name: definition.name,
+        archiveTag: definition.archiveTag,
         description: definition.description,
         guide: definition.guide,
         overlayClass: definition.overlayClass || "",
@@ -1105,7 +1065,9 @@ function restoreSnapshot() {
     }
     state.phase = "playing";
     state.lastSnapshotSecond = Math.floor(state.elapsedMs / 1000);
+    state.dropCounter = 0;
     hideOverlay();
+    setPhaseText("历史事件执行中");
     updateEraPanel();
     updateHud();
     return true;
@@ -1113,7 +1075,7 @@ function restoreSnapshot() {
 
 function triggerGameOver() {
     if (eventIs("augustCoup") && !state.activeEvent.runtime.used && restoreSnapshot()) {
-        setStatus("八一九事件：历史回滚 10 秒");
+        setStatus("八一九事件：历史回滚 60 秒");
         return;
     }
 
@@ -1125,21 +1087,162 @@ function triggerGameOver() {
         title: "时空崩坏",
         body: "方块已触及顶部天花板。当前历史线无法维持稳定，需重新启动整个修正流程。",
         buttonLabel: "重启历史线",
+        artTag: "FAIL",
         action: restartGame
     });
 }
 
-function updateEventRuntime(deltaTime) {
-    if (eventIs("westernJamming")) {
-        const runtime = state.activeEvent.runtime;
-        runtime.elapsedMs += deltaTime;
-        const shouldInvert = Math.floor(runtime.elapsedMs / 3000) % 2 === 1;
-        if (shouldInvert !== runtime.inverted) {
-            runtime.inverted = shouldInvert;
-            setStatus(shouldInvert ? "西方之音：左右操作已反转" : "西方之音：指令恢复正常");
-            updateSignalIndicator();
-        }
+function getDropInterval() {
+    let interval = 800;
+    if (eventIs("greatPatrioticWar")) {
+        interval /= 3;
     }
+    return interval;
+}
+
+function activatePendingEvent() {
+    const definition = state.pendingEvent || nextEventDefinition();
+    state.pendingEvent = null;
+    state.activeEvent = {
+        id: definition.id,
+        name: definition.name,
+        archiveTag: definition.archiveTag,
+        description: definition.description,
+        guide: definition.guide,
+        overlayClass: definition.overlayClass || "",
+        runtime: definition.createRuntime()
+    };
+    state.eventCount += 1;
+    state.piecesRemainingInEra = ERA_PIECES;
+    state.input.lastRotateMs = -Infinity;
+    state.phase = "playing";
+    state.dropCounter = 0;
+    state.lastSnapshotSecond = Math.floor(state.elapsedMs / 1000) - 1;
+    setPhaseText("历史事件执行中");
+    setStatus(`${definition.name} 已生效`);
+    updateEraPanel();
+    spawnPlayer();
+    updateHud();
+}
+
+function beginEventIntro() {
+    state.phase = "intro";
+    state.pendingEvent = nextEventDefinition();
+    updateHud();
+    showOverlay({
+        kicker: "Historical Briefing",
+        title: state.pendingEvent.name,
+        body: `${state.pendingEvent.description}\n\n${state.pendingEvent.guide}`,
+        buttonLabel: "开始历史事件",
+        artTag: state.pendingEvent.archiveTag,
+        action: activatePendingEvent
+    });
+}
+
+function enterStorePhase() {
+    state.phase = "store";
+    state.player = null;
+    state.storeVisits += 1;
+    setPhaseText("国家商店待机中");
+    updateHud();
+    showOverlay({
+        kicker: "State Store",
+        title: "国家商店",
+        body: `本阶段已结束。当前可支配部门点数为 工业 ${Math.round(state.departments.industrial)} / 农业 ${Math.round(state.departments.agricultural)} / 科技 ${Math.round(state.departments.scientific)}。商店条目后续接入，现可直接进入下一随机历史事件。`,
+        buttonLabel: "继续下一事件",
+        artTag: "STORE",
+        action: continueFromStore
+    });
+}
+
+function continueFromStore() {
+    hideOverlay();
+    beginEventIntro();
+}
+
+function pauseGame() {
+    if (state.phase !== "playing") {
+        return;
+    }
+
+    state.previousPhase = "playing";
+    state.phase = "paused";
+    setPhaseText("运行已暂停");
+    updateHud();
+    showOverlay({
+        kicker: "Pause",
+        title: "系统暂停",
+        body: "生产线已临时停机。按下 P 或点击按钮即可继续当前历史事件。",
+        buttonLabel: "继续运行",
+        artTag: "PAUSE",
+        action: resumeGame
+    });
+}
+
+function resumeGame() {
+    if (state.phase !== "paused") {
+        return;
+    }
+
+    hideOverlay();
+    state.phase = "playing";
+    state.lastTime = 0;
+    setPhaseText("历史事件执行中");
+    updateHud();
+}
+
+function togglePause() {
+    if (state.phase === "playing") {
+        pauseGame();
+    } else if (state.phase === "paused") {
+        resumeGame();
+    }
+}
+
+function restartGame() {
+    state.phase = "boot";
+    state.previousPhase = "playing";
+    state.arena = createMatrix(COLS, ROWS);
+    state.player = null;
+    state.totalScore = 0;
+    state.multiplier = 1.0;
+    state.departments = {
+        industrial: 0,
+        agricultural: 0,
+        scientific: 0
+    };
+    state.departmentWeights = {
+        industrial: 1,
+        agricultural: 1,
+        scientific: 1
+    };
+    state.routeArchive = "尚未确立路线。";
+    state.dropCounter = 0;
+    state.lastTime = 0;
+    state.elapsedMs = 0;
+    state.historySnapshots = [];
+    state.lastSnapshotSecond = -1;
+    state.eventCount = 0;
+    state.piecesRemainingInEra = ERA_PIECES;
+    state.storeVisits = 0;
+    state.activeEvent = null;
+    state.pendingEvent = null;
+    state.gaugeMaxima = {
+        industrial: 25,
+        agricultural: 25,
+        scientific: 25
+    };
+    refillBag();
+    refillEventBag();
+    hideOverlay();
+    boardOverlayEl.className = "";
+    eraNameEl.innerText = "待命";
+    eraDescriptionEl.innerText = "历史事件即将随机抽取。";
+    eraGuideEl.innerText = "等待首次简报。";
+    eraArtTagEl.innerText = "ARCHIVE";
+    signalModeEl.innerText = "NORMAL";
+    updateHud();
+    beginEventIntro();
 }
 
 function update(time = 0) {
@@ -1163,22 +1266,31 @@ function update(time = 0) {
 }
 
 document.addEventListener("keydown", (event) => {
-    if (state.phase !== "playing") {
-        if ((state.phase === "store" || state.phase === "gameover") && event.key === "Enter" && typeof overlayAction === "function") {
-            overlayAction();
-        }
+    const key = event.key.toLowerCase();
+
+    if (key === "p") {
+        togglePause();
         return;
     }
 
-    if (event.key === "ArrowLeft") {
+    if ((state.phase === "intro" || state.phase === "store" || state.phase === "gameover") && event.key === "Enter" && typeof overlayAction === "function") {
+        overlayAction();
+        return;
+    }
+
+    if (state.phase !== "playing") {
+        return;
+    }
+
+    if (event.key === "ArrowLeft" || key === "a") {
         playerMove(-1);
-    } else if (event.key === "ArrowRight") {
+    } else if (event.key === "ArrowRight" || key === "d") {
         playerMove(1);
-    } else if (event.key === "ArrowDown") {
+    } else if (event.key === "ArrowDown" || key === "s") {
         playerDrop();
-    } else if (event.key === "ArrowUp" || event.key.toLowerCase() === "x") {
+    } else if (event.key === "ArrowUp" || key === "w" || key === "x") {
         playerRotate(1);
-    } else if (event.key.toLowerCase() === "z") {
+    } else if (key === "z") {
         playerRotate(-1);
     } else if (event.code === "Space") {
         event.preventDefault();

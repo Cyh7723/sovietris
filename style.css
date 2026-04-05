@@ -31,11 +31,12 @@ body {
     font-family: "Courier New", monospace;
     display: flex;
     justify-content: center;
-    padding: 24px;
+    padding: 12px;
+    overflow: hidden;
 }
 
 #game-shell {
-    width: min(1280px, 100%);
+    width: min(1360px, 100%);
     border: 4px solid var(--frame);
     background:
         linear-gradient(180deg, rgba(225, 75, 66, 0.08), transparent 18%),
@@ -43,8 +44,11 @@ body {
         #0b0908;
     box-shadow:
         0 0 0 2px rgba(0, 0, 0, 0.75) inset,
-        0 30px 80px rgba(0, 0, 0, 0.55);
-    padding: 18px;
+        0 24px 64px rgba(0, 0, 0, 0.55);
+    padding: 14px;
+    height: calc(100vh - 24px);
+    display: flex;
+    flex-direction: column;
 }
 
 #header-bar,
@@ -54,7 +58,8 @@ body {
 .score-grid,
 .signal-header,
 .signal-lights,
-.gauges {
+.gauges,
+#console-section {
     display: flex;
 }
 
@@ -62,8 +67,9 @@ body {
     justify-content: space-between;
     gap: 20px;
     align-items: flex-start;
-    padding-bottom: 16px;
+    padding-bottom: 10px;
     border-bottom: 2px solid rgba(143, 128, 105, 0.45);
+    flex: 0 0 auto;
 }
 
 .eyebrow,
@@ -72,7 +78,7 @@ body {
     margin: 0;
     text-transform: uppercase;
     letter-spacing: 0.18em;
-    font-size: 0.72rem;
+    font-size: 0.68rem;
 }
 
 .eyebrow,
@@ -93,19 +99,20 @@ h2 {
 }
 
 h1 {
-    font-size: clamp(1.35rem, 2.1vw, 2rem);
+    font-size: clamp(1.2rem, 1.8vw, 1.8rem);
 }
 
 h2 {
     color: #f2dfd2;
-    font-size: 1.15rem;
-    margin-top: 8px;
+    font-size: 1rem;
+    margin-top: 6px;
 }
 
 .header-meta {
     flex-direction: column;
     align-items: flex-end;
-    gap: 6px;
+    gap: 4px;
+    text-align: right;
 }
 
 #quota-text,
@@ -116,14 +123,17 @@ h2 {
 .event-text,
 .event-guide,
 #board-footer p,
-.empty-slot {
+.empty-slot,
+.art-placeholder p {
     color: var(--muted);
 }
 
 #main-layout {
-    gap: 18px;
-    margin-top: 18px;
-    align-items: flex-start;
+    gap: 14px;
+    margin-top: 12px;
+    align-items: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .panel-card {
@@ -133,17 +143,25 @@ h2 {
     border: 1px solid rgba(143, 128, 105, 0.42);
     box-shadow:
         0 0 0 1px rgba(0, 0, 0, 0.45) inset,
-        0 10px 24px rgba(0, 0, 0, 0.24);
-    padding: 14px;
+        0 8px 20px rgba(0, 0, 0, 0.24);
+    padding: 10px;
+    min-height: 0;
+}
+
+.compact-card {
+    padding: 10px;
 }
 
 #board-section {
     flex: 0 0 auto;
+    width: 292px;
+    display: flex;
+    flex-direction: column;
 }
 
 #board-frame {
     position: relative;
-    padding: 14px;
+    padding: 10px;
     border: 3px solid rgba(127, 43, 39, 0.8);
     background:
         linear-gradient(180deg, rgba(225, 75, 66, 0.06), transparent 22%),
@@ -157,11 +175,13 @@ canvas {
         linear-gradient(180deg, rgba(225, 75, 66, 0.05), transparent 16%),
         #040404;
     image-rendering: pixelated;
+    width: 240px;
+    height: 440px;
 }
 
 #board-overlay {
     position: absolute;
-    inset: 14px;
+    inset: 10px;
     pointer-events: none;
 }
 
@@ -184,61 +204,106 @@ canvas {
 }
 
 #board-footer {
-    gap: 12px;
-    margin-top: 12px;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
 }
 
 .footer-box {
-    flex: 1;
+    flex: 1 1 calc(50% - 4px);
     background: var(--panel-strong);
     border: 1px solid rgba(127, 43, 39, 0.65);
-    padding: 10px;
+    padding: 8px;
+    min-width: 120px;
+    line-height: 1.35;
 }
 
-#side-panel {
-    flex: 1 1 0;
-    min-width: 330px;
-    display: grid;
+#console-section {
+    flex: 1 1 auto;
     gap: 14px;
+    min-width: 0;
+    min-height: 0;
+}
+
+.stack-column {
+    flex: 1 1 0;
+    display: grid;
+    gap: 10px;
+    grid-auto-rows: minmax(0, auto);
+    align-content: start;
+    min-width: 0;
 }
 
 #clock-display {
-    margin-top: 10px;
-    padding: 12px 14px;
+    margin-top: 8px;
+    padding: 10px 12px;
     border: 1px solid rgba(225, 75, 66, 0.65);
     background:
         linear-gradient(180deg, rgba(225, 75, 66, 0.08), rgba(0, 0, 0, 0.7)),
         #140908;
     color: #ff8b7c;
-    font-size: clamp(2rem, 4vw, 3rem);
+    font-size: clamp(1.65rem, 2.6vw, 2.3rem);
     text-align: center;
-    letter-spacing: 0.22em;
+    letter-spacing: 0.18em;
     text-shadow: 0 0 14px rgba(255, 107, 94, 0.55);
 }
 
 .score-grid {
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 8px;
 }
 
 .score-grid > div {
-    flex: 1 1 calc(50% - 6px);
-    min-width: 120px;
+    flex: 1 1 calc(50% - 4px);
+    min-width: 116px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(143, 128, 105, 0.24);
-    padding: 10px;
+    padding: 8px;
 }
 
 .score-value {
-    margin-top: 8px;
-    font-size: 1.3rem;
+    margin-top: 6px;
+    font-size: 1.15rem;
     color: #f6ebdf;
 }
 
-.event-text,
-.event-guide {
+#era-art,
+.overlay-art {
     margin-top: 8px;
-    line-height: 1.45;
+    margin-bottom: 8px;
+}
+
+.art-placeholder {
+    min-height: 110px;
+    border: 1px dashed rgba(143, 128, 105, 0.5);
+    background:
+        linear-gradient(135deg, rgba(225, 75, 66, 0.08), rgba(73, 160, 224, 0.08)),
+        rgba(255, 255, 255, 0.02);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    text-align: center;
+    padding: 8px;
+}
+
+#era-art-tag,
+#overlay-art-tag {
+    display: inline-block;
+    padding: 4px 8px;
+    border: 1px solid rgba(242, 183, 92, 0.6);
+    color: var(--warning);
+    letter-spacing: 0.16em;
+}
+
+.event-text,
+.event-guide,
+#phase-text,
+#timeline-text,
+#route-bonus {
+    margin-top: 6px;
+    line-height: 1.4;
 }
 
 .event-guide {
@@ -252,12 +317,12 @@ canvas {
 
 .signal-lights {
     gap: 10px;
-    margin-top: 12px;
+    margin-top: 10px;
 }
 
 .signal-light {
     flex: 1;
-    height: 16px;
+    height: 14px;
     border: 1px solid rgba(143, 128, 105, 0.4);
     background: rgba(255, 255, 255, 0.04);
     box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45) inset;
@@ -271,14 +336,13 @@ canvas {
 
 .gauges {
     justify-content: space-between;
-    gap: 12px;
-    margin-top: 10px;
-    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .gauge {
-    flex: 1 1 30%;
-    min-width: 96px;
+    flex: 1 1 0;
+    min-width: 0;
 }
 
 .gauge-face {
@@ -299,19 +363,6 @@ canvas {
     inset: 14%;
     border-radius: 50%;
     border: 1px dashed rgba(236, 216, 204, 0.25);
-}
-
-.gauge-face::after {
-    content: "";
-    position: absolute;
-    inset: 50% auto auto 50%;
-    width: 78%;
-    height: 1px;
-    transform-origin: left center;
-    transform: rotate(-120deg);
-    box-shadow:
-        0 0 0 1px rgba(236, 216, 204, 0.15),
-        0 0 34px rgba(0, 0, 0, 0.25);
 }
 
 .gauge-needle {
@@ -355,7 +406,7 @@ canvas {
 .gauge-title,
 .gauge-value {
     text-align: center;
-    margin-top: 8px;
+    margin-top: 6px;
 }
 
 .gauge-value {
@@ -365,19 +416,19 @@ canvas {
 #medal-slots {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 10px;
-    margin-top: 12px;
+    gap: 8px;
+    margin-top: 8px;
 }
 
 .empty-slot {
-    min-height: 72px;
+    min-height: 60px;
     border: 1px dashed rgba(143, 128, 105, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     padding: 8px;
-    line-height: 1.4;
+    line-height: 1.35;
 }
 
 #phase-overlay {
@@ -396,18 +447,18 @@ canvas {
 }
 
 .overlay-panel {
-    width: min(520px, 100%);
+    width: min(560px, 100%);
     background:
         linear-gradient(180deg, rgba(225, 75, 66, 0.08), transparent 18%),
         var(--panel-strong);
     border: 2px solid rgba(225, 75, 66, 0.7);
     box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5);
-    padding: 22px;
+    padding: 20px;
 }
 
 #overlay-title {
-    margin-top: 8px;
-    margin-bottom: 12px;
+    margin-top: 10px;
+    margin-bottom: 10px;
 }
 
 #overlay-body {
@@ -416,7 +467,7 @@ canvas {
 }
 
 #overlay-button {
-    margin-top: 18px;
+    margin-top: 16px;
     padding: 12px 16px;
     width: 100%;
     border: 1px solid rgba(242, 183, 92, 0.8);
@@ -434,32 +485,25 @@ canvas {
     filter: brightness(1.08);
 }
 
-@media (max-width: 1100px) {
-    #main-layout {
+@media (max-width: 1220px) {
+    body {
+        overflow: auto;
+    }
+
+    #game-shell {
+        height: auto;
+    }
+
+    #main-layout,
+    #console-section {
         flex-direction: column;
     }
 
-    #side-panel {
-        min-width: 0;
+    #board-section {
         width: 100%;
     }
-}
 
-@media (max-width: 760px) {
-    body {
-        padding: 12px;
-    }
-
-    #header-bar,
     #board-footer {
-        flex-direction: column;
-    }
-
-    .header-meta {
-        align-items: flex-start;
-    }
-
-    #clock-display {
-        letter-spacing: 0.12em;
+        flex-direction: row;
     }
 }
